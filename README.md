@@ -23,16 +23,16 @@ Ansible is an open-source **automation engine** for configuration management, ap
 ## 2. Architecture & Core Concepts
 
 ```
-┌─────────────────┐        SSH / WinRM        ┌──────────────┐
+┌──────────────────┐        SSH / WinRM       ┌───────────────┐
 │  Control Node    │ ───────────────────────▶ │ Managed Node │ web1
 │  (your laptop /  │ ───────────────────────▶ │ Managed Node │ web2
 │   CI runner /    │ ───────────────────────▶ │ Managed Node │ db1
-│   AWX server)    │                          └──────────────┘
+│   AWX server)    │                          └───────────────┘
 │                  │
 │  - ansible core  │   Ansible copies small Python "module"
 │  - inventory     │   scripts to each node, runs them,
 │  - playbooks     │   collects JSON results, deletes them.
-└─────────────────┘
+└──────────────────┘
 ```
 
 | Term | Meaning |
