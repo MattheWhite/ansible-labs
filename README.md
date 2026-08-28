@@ -51,3 +51,26 @@ Ansible is an open-source **automation engine** for configuration management, ap
 | **Idempotency** | Re-running produces the same end state, reporting `ok` instead of `changed` |
 
 ---
+
+## 3. Installation & Lab Setup
+
+### Install Ansible (control node)
+
+```bash
+# Recommended: pipx or pip (latest version)
+pipx install --include-deps ansible
+# or
+python3 -m pip install --user ansible
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install -y ansible
+
+# RHEL/Fedora
+sudo dnf install -y ansible-core
+
+# macOS
+brew install ansible
+
+# Verify
+ansible --version
+```
