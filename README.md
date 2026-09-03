@@ -74,3 +74,61 @@ brew install ansible
 # Verify
 ansible --version
 ```
+
+
+> **Windows users:** run the control node inside WSL2. Windows machines can be *managed* by Ansible (via WinRM/SSH) but can't natively run it.
+
+### Build a free practice lab
+
+**Option A — Docker containers as "servers" (fastest):**
+
+```bash
+docker run -d --name web1 -p 2221:22 rastasheep/ubuntu-sshd:18.04
+docker run -d --name web2 -p 2222:22 rastasheep/ubuntu-sshd:18.04
+```
+
+**Option B — Vagrant + VirtualBox:**
+
+```ruby
+# Vagrantfile
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/jammy64"
+  (1..2).each do |i|
+    config.vm.define "web#{i}" do |node|
+      node.vm.hostname = "web#{i}"
+      node.vm.network "private_network", ip: "192.168.56.1#{i}"
+    end
+  end
+end
+```
+
+**Option C — two cheap cloud VMs** (AWS free tier, Hetzner, DigitalOcean).
+
+### SSH key setup (do this once)
+
+```bash
+ssh-keygen -t ed25519 -C "ansible"
+ssh-copy-id user@192.168.56.11
+ssh-copy-id user@192.168.56.12
+```
+
+### Project layout & ansible.cfg
+
+```bash
+mkdir ansible-lab && cd ansible-lab
+```
+
+```ini
+# ansible.cfg
+[defaults]
+inventory = ./inventory.ini
+host_key_checking = False        # lab only — keep True in production
+interpreter_python = auto_silent
+forks = 20
+
+[privilege_escalation]
+become = True
+become_method = sudo
+```
+
+---
