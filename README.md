@@ -132,3 +132,112 @@ become_method = sudo
 ```
 
 ---
+
+## 4. Inventory — Defining Your Servers
+
+### INI format (simple)
+
+```ini
+# inventory.ini
+[webservers]
+web1 ansible_host=192.168.56.11
+web2 ansible_host=192.168.56.12
+
+[dbservers]
+db1 ansible_host=192.168.56.21
+
+[production:children]
+webservers
+dbservers
+
+[webservers:vars]
+ansible_user=ubuntu
+http_port=80
+```
+
+### YAML format (preferred for larger setups)
+
+```yaml
+# inventory.yml
+all:
+  children:
+    webservers:
+      hosts:
+        web1:
+          ansible_host: 192.168.56.11
+        web2:
+          ansible_host: 192.168.56.12
+      vars:
+        ansible_user: ubuntu
+    dbservers:
+      hosts:
+        db1:
+          ansible_host: 192.168.56.21
+```
+
+### group_vars / host_vars (the industry way)
+
+Keep variables out of the inventory file:
+
+```
+inventory.ini
+group_vars/
+  all.yml           # applies to every host
+  webservers.yml    # applies to the webservers group
+host_vars/
+  web1.yml          # applies only to web1
+```
+
+### Verify connectivity
+
+```bash
+ansible all -m ping                 # not ICMP — a full SSH+Python round trip
+ansible webservers --list-hosts
+ansible-inventory --graph
+```
+
+Expected output:
+
+```
+web1 | SUCCESS => { "changed": false, "ping": "pong" }
+```
+
+---
+
+## 5. Ad-Hoc Commands
+
+One-off commands without writing a playbook — great for investigation and quick fixes across a fleet.
+
+```bash
+# Run a shell command everywhere
+ansible all -m ansible.builtin.command -a "uptime"
+
+# Check disk space on web servers
+ansible webservers -a "df -h /"
+
+# Install a package (needs sudo → -b for "become")
+ansible webservers -m ansible.builtin.apt -a "name=htop state=present" -b
+
+# Restart a service
+ansible webservers -m ansible.builtin.service -a "name=nginx state=restarted" -b
+
+# Copy a file to all hosts
+ansible all -m ansible.builtin.copy -a "src=motd dest=/etc/motd" -b
+
+# Gather all facts about a host
+ansible web1 -m ansible.builtin.setup
+
+# Just one fact
+ansible web1 -m ansible.builtin.setup -a "filter=ansible_memtotal_mb"
+
+# Reboot every host in a group, 5 at a time
+ansible webservers -m ansible.builtin.reboot -b -f 5
+```
+
+**Industry scenario:** security asks "which of our 300 servers still run OpenSSL 1.x?" — answer in one line:
+
+```bash
+ansible all -a "openssl version" | sort
+```
+
+---
