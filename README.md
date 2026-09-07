@@ -1,6 +1,31 @@
-# Ansible Labs
+# The Complete Ansible Guide
+### From Zero to Production — with Hands-On Industry Examples
 
-Ansible is an open-source automation engine for configuration management, application deployment, and orchestration. You describe the desired state of your systems in simple YAML files, and Ansible makes it so.
+---
+
+## Table of Contents
+
+1. [What Is Ansible & Why Use It](#1-what-is-ansible--why-use-it)
+2. [Architecture & Core Concepts](#2-architecture--core-concepts)
+3. [Installation & Lab Setup](#3-installation--lab-setup)
+4. [Inventory — Defining Your Servers](#4-inventory--defining-your-servers)
+5. [Ad-Hoc Commands](#5-ad-hoc-commands)
+6. [Playbooks — The Heart of Ansible](#6-playbooks--the-heart-of-ansible)
+7. [Variables, Facts & Precedence](#7-variables-facts--precedence)
+8. [Conditionals, Loops & Error Handling](#8-conditionals-loops--error-handling)
+9. [Templates (Jinja2)](#9-templates-jinja2)
+10. [Handlers](#10-handlers)
+11. [Roles — Structuring Real Projects](#11-roles--structuring-real-projects)
+12. [Ansible Vault — Secrets Management](#12-ansible-vault--secrets-management)
+13. [Ansible Galaxy & Collections](#13-ansible-galaxy--collections)
+14. [Industry Project 1: Zero-Downtime Web App Deployment](#14-industry-project-1-zero-downtime-web-app-deployment)
+15. [Industry Project 2: AWS Cloud Provisioning with Dynamic Inventory](#15-industry-project-2-aws-cloud-provisioning-with-dynamic-inventory)
+16. [Industry Project 3: Security Hardening & Patch Management](#16-industry-project-3-security-hardening--patch-management)
+17. [Industry Project 4: Database & Multi-Tier Orchestration](#17-industry-project-4-database--multi-tier-orchestration)
+18. [Testing with Molecule & CI/CD Integration](#18-testing-with-molecule--cicd-integration)
+19. [AWX / Ansible Automation Platform](#19-awx--ansible-automation-platform)
+20. [Best Practices & Production Checklist](#20-best-practices--production-checklist)
+21. [Learning Path & Resources](#21-learning-path--resources)
 
 ---
 
@@ -23,16 +48,16 @@ Ansible is an open-source **automation engine** for configuration management, ap
 ## 2. Architecture & Core Concepts
 
 ```
-┌──────────────────┐        SSH / WinRM       ┌───────────────┐
+┌─────────────────┐        SSH / WinRM        ┌──────────────┐
 │  Control Node    │ ───────────────────────▶ │ Managed Node │ web1
 │  (your laptop /  │ ───────────────────────▶ │ Managed Node │ web2
 │   CI runner /    │ ───────────────────────▶ │ Managed Node │ db1
-│   AWX server)    │                          └───────────────┘
+│   AWX server)    │                          └──────────────┘
 │                  │
 │  - ansible core  │   Ansible copies small Python "module"
 │  - inventory     │   scripts to each node, runs them,
 │  - playbooks     │   collects JSON results, deletes them.
-└──────────────────┘
+└─────────────────┘
 ```
 
 | Term | Meaning |
@@ -75,17 +100,70 @@ brew install ansible
 ansible --version
 ```
 
-
 > **Windows users:** run the control node inside WSL2. Windows machines can be *managed* by Ansible (via WinRM/SSH) but can't natively run it.
+> For the Docker lab: install Docker Desktop, enable **Settings → Resources → WSL Integration** for your distro, then run both `docker compose` and `ansible` from the WSL2 shell. The docker connection plugin just needs the `docker` CLI working in that shell (`docker ps` to verify).
 
 ### Build a free practice lab
 
-**Option A — Docker containers as "servers" (fastest):**
+**Option A — Docker containers as "servers" (fastest, used throughout this guide):**
+
+Two things make containers behave like real servers for Ansible practice:
+
+1. **A systemd-capable image.** Plain images (ubuntu, debian) have no init system, so `service`/`systemd` modules fail. Use Jeff Geerling's purpose-built Ansible test images — they ship with systemd + Python preinstalled.
+2. **The Docker connection plugin instead of SSH.** No sshd, no keys, no port juggling — Ansible talks to containers via `docker exec`.
+
+```yaml
+# docker-compose.yml
+services:
+  web1:
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    container_name: web1
+    hostname: web1
+    privileged: true
+    cgroup: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /lib/systemd/systemd
+    ports: ["8081:80"]          # view nginx at http://localhost:8081
+    networks: [lab]
+  web2:
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    container_name: web2
+    hostname: web2
+    privileged: true
+    cgroup: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /lib/systemd/systemd
+    ports: ["8082:80"]
+    networks: [lab]
+  db1:
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    container_name: db1
+    hostname: db1
+    privileged: true
+    cgroup: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /lib/systemd/systemd
+    networks: [lab]
+
+networks:
+  lab:
+    name: ansible-lab
+```
 
 ```bash
-docker run -d --name web1 -p 2221:22 rastasheep/ubuntu-sshd:18.04
-docker run -d --name web2 -p 2222:22 rastasheep/ubuntu-sshd:18.04
+docker compose up -d
+docker ps                          # all three should be Up
+ansible-galaxy collection install community.docker
 ```
+
+Containers on the `ansible-lab` network resolve each other **by container name** (`web1`, `db1`) — that replaces static IPs everywhere in this guide.
+
+> `privileged: true` + the cgroup mount is what lets systemd run inside the container. Fine for a lab; never do this for production containers.
+
+**Reset the whole lab anytime:** `docker compose down && docker compose up -d` — then re-run your playbooks. Rebuilding from scratch in seconds is the big advantage of the Docker lab.
 
 **Option B — Vagrant + VirtualBox:**
 
@@ -104,7 +182,9 @@ end
 
 **Option C — two cheap cloud VMs** (AWS free tier, Hetzner, DigitalOcean).
 
-### SSH key setup (do this once)
+### SSH key setup (Options B/C only — **skip for the Docker lab**)
+
+The Docker connection plugin needs no SSH at all. For VMs/cloud servers:
 
 ```bash
 ssh-keygen -t ed25519 -C "ansible"
@@ -122,12 +202,12 @@ mkdir ansible-lab && cd ansible-lab
 # ansible.cfg
 [defaults]
 inventory = ./inventory.ini
-host_key_checking = False        # lab only — keep True in production
+host_key_checking = False        # SSH-only setting; irrelevant for Docker, keep True in production
 interpreter_python = auto_silent
 forks = 20
 
 [privilege_escalation]
-become = True
+become = True                    # harmless in the Docker lab (you're already root)
 become_method = sudo
 ```
 
@@ -135,7 +215,28 @@ become_method = sudo
 
 ## 4. Inventory — Defining Your Servers
 
-### INI format (simple)
+### Docker lab inventory (use this one for the guide)
+
+```ini
+# inventory.ini
+[webservers]
+web1
+web2
+
+[dbservers]
+db1
+
+[lab:children]
+webservers
+dbservers
+
+[lab:vars]
+ansible_connection=community.docker.docker
+```
+
+Host names must match the **container names**. `ansible_connection` swaps SSH for `docker exec`; everything else in Ansible works identically — which is the point: your playbooks stay unchanged when you later target real servers, only the inventory differs.
+
+### INI format for real servers (SSH)
 
 ```ini
 # inventory.ini
@@ -191,7 +292,7 @@ host_vars/
 ### Verify connectivity
 
 ```bash
-ansible all -m ping                 # not ICMP — a full SSH+Python round trip
+ansible all -m ping                 # not ICMP — a full connection+Python round trip (docker exec in the lab, SSH on real servers)
 ansible webservers --list-hosts
 ansible-inventory --graph
 ```
@@ -586,6 +687,12 @@ http {
 
 Notice the `validate:` parameter and the loop over `groups['appservers']` — templates that auto-build load-balancer pools from inventory are everywhere in industry.
 
+> **Docker lab:** there is no `ansible_host` variable (no SSH address). Use the inventory hostname instead — Docker's network DNS resolves container names:
+> ```jinja
+> server {{ host }}:{{ app_port }};
+> ```
+> A portable pattern that works in both worlds: `{{ hostvars[host]['ansible_host'] | default(host) }}`.
+
 ---
 
 ## 10. Handlers
@@ -836,6 +943,8 @@ Highly regarded community content worth studying: `geerlingguy.*` roles (nginx, 
 
 Key technique: `serial` (rolling batches) + LB drain + `block/rescue`.
 
+> **Docker lab:** everything here works in the containers (systemd runs, so `systemd_service` behaves normally). To do the full exercise, add an `lb1` container to `docker-compose.yml` (same systemd image, mapped port `8080:80`), put it in a `[loadbalancers]` inventory group, and install haproxy on it first. To start simpler, tag the LB drain/enable tasks `tags: [lb]` and run with `--skip-tags lb`.
+
 ```yaml
 # deploy.yml
 ---
@@ -1066,6 +1175,17 @@ Scale from 3 servers to 50: launch more instances with the right tags — invent
 
 **Scenario:** compliance requires SSH hardening, a firewall baseline, automated patching with controlled reboots, and an audit trail — across every Linux server.
 
+> **Docker lab adjustments for this project:**
+> - **SSH hardening tasks:** the lab containers run no sshd, so first `apt install openssh-server` in the play (or accept that you're editing a config no daemon reads — the `lineinfile` mechanics you're practicing are identical). Change the handler's service name check accordingly.
+> - **Firewall tasks:** kernel-level firewalling doesn't work inside containers — **skip the ufw tasks** (`--skip-tags firewall` after tagging them, or `when: ansible_virtualization_type != "docker"`).
+> - **Reboot task:** containers can't reboot themselves — the `ansible.builtin.reboot` task below is guarded the same way.
+> - Everything else (package removal, fail2ban install, unattended-upgrades, audit log) works as-is.
+>
+> The condition to use everywhere: `ansible_virtualization_type` fact equals `"docker"` inside a container. Example:
+> ```yaml
+> when: ansible_facts['virtualization_type'] != "docker"
+> ```
+
 ### Hardening playbook
 
 ```yaml
@@ -1184,7 +1304,9 @@ Scale from 3 servers to 50: launch more instances with the right tags — invent
       ansible.builtin.reboot:
         msg: "Ansible patching reboot"
         reboot_timeout: 600
-      when: reboot_required.stat.exists
+      when:
+        - reboot_required.stat.exists
+        - ansible_facts['virtualization_type'] != "docker"   # containers can't reboot
 
     - name: Verify critical service after reboot
       ansible.builtin.service:
@@ -1248,7 +1370,7 @@ Scale from 3 servers to 50: launch more instances with the right tags — invent
         contype: host
         databases: shopdb
         users: shop_app
-        source: "10.0.1.0/24"
+        source: "10.0.1.0/24"    # Docker lab: use your lab network's subnet — find it with `docker network inspect ansible-lab`, or use "samenet"
         method: scram-sha-256
       notify: Restart postgresql
 
@@ -1268,7 +1390,9 @@ Scale from 3 servers to 50: launch more instances with the right tags — invent
         dest: /opt/shop/current/.env
         mode: "0640"
       vars:
-        db_host: "{{ hostvars[groups['dbservers'][0]]['ansible_host'] }}"
+        # falls back to the inventory hostname when there's no ansible_host
+        # (Docker lab: container names resolve via Docker network DNS)
+        db_host: "{{ hostvars[groups['dbservers'][0]]['ansible_host'] | default(groups['dbservers'][0]) }}"
       notify: Restart app
 
   handlers:
