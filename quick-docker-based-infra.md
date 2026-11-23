@@ -1,4 +1,6 @@
-# Define and create a Docker based infrastructure to learn and test Ansible usage and capabilities
+# Docker container based infrastructure - Ansible management
+Define and create a Docker based infrastructure to learn and test Ansible usage and capabilities as an agentless server  management tool.
+
 ## Requirements
 This lab assumes you have installed on your laptop: Python, Ansible
 
@@ -92,3 +94,5 @@ server2 | SUCCESS => {
     "ping": "pong"
 }
 ```
+
+
