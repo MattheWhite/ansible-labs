@@ -54,7 +54,7 @@ Before that, we create custom docker network for this ansible lab and the contai
 ```docker network create ansible-net```
 
 Launch 2 test "servers" (from a pre-prepared Ubuntu + SSH image):bash
-```
+```bash
 docker run -d --name server1 --network ansible-net -p 2221:22 rastasheep/ubuntu-sshd:18.04
 docker run -d --name server2 --network ansible-net -p 2222:22 rastasheep/ubuntu-sshd:18.04
 ```
@@ -70,3 +70,8 @@ Check run
 server1 ansible_host=127.0.0.1 ansible_port=2221 ansible_user=root
 server2 ansible_host=127.0.0.1 ansible_port=2222 ansible_user=root
 ```
+
+
+## 4. Test the connection:bash
+```ansible all -i inventory.ini -m ping```
+
