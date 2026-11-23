@@ -94,5 +94,39 @@ server2 | SUCCESS => {
     "ping": "pong"
 }
 ```
+Great! Your control node/machine is now actively communicating with the two managed node/containers. The next logical step is to write your first *Ansible Playbook*, which will allow you to simultaneously install and configure something on both machines (for example, an Nginx web server with a custom homepage).
 
 
+
+# Create Ansible Playbook
+
+## 1. Create the Playbook (setup_web.yml)
+Create the YAML file with this content:
+```yaml
+---
+- name: Install and configure web server
+  hosts: test_servers # has to match the cluster name in .ini inventory file
+  tasks:
+    - name: Update apt cache and install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Create custom index.html
+      copy:
+        content: "<h1>Welcome from Ansible on {{ inventory_hostname }}!</h1>\n"
+        dest: /var/www/html/index.html
+
+    - name: Start Nginx service
+      service:
+        name: nginx
+        state: started
+```
+
+
+## 2. Run the Playbook
+Execute the automation using the ansible-playbook command:
+```bash
+ansible-playbook -i inventory.ini setup_web.yml
+```
