@@ -107,9 +107,11 @@ Create the YAML file with this content:
 - name: Install and configure web server
   hosts: test_servers # has to match the cluster name in .ini inventory file
   tasks:
-    - name: Update apt cache and install Nginx
+    - name: Update apt cache and install Nginx and Curl
       apt:
-        name: nginx
+        name:
+          - nginx
+          - curl
         state: present
         update_cache: yes
 
@@ -123,6 +125,10 @@ Create the YAML file with this content:
         name: nginx
         state: started
 ```
+
+In Ansible terminology, those steps are called *tasks*, and each task calls a specific module (like copy or service).
+`{{ inventory_hostname }}` is a Jinja2 variable built directly into Ansible, and the service module automatically detects the target OS's service manager to start Nginx.
+
 **The value you define under hosts: in your YAML playbook must strictly match a group name inside the square brackets [ ] (or an individual host alias) in your inventory.ini file.**
 
 How Ansible Matches Targets
@@ -143,6 +149,31 @@ ansible-playbook -i inventory.ini setup_web.yml
 ```
 • On the first run, you will see yellow changed statuses because Ansible modified the servers.
 • On the second run, you will get green ok statuses because Ansible is idempotent: it sees everything is already in the desired state and makes no unnecessary changes.
+
+On success:
+```
+PLAY [Install and configure web server] *********************************************************************************************
+
+TASK [Gathering Facts] **************************************************************************************************************
+ok: [server1]
+ok: [server2]
+
+TASK [Update apt cache and install Nginx] *******************************************************************************************
+changed: [server1]
+changed: [server2]
+
+TASK [Create custom index.html] *****************************************************************************************************
+changed: [server2]
+changed: [server1]
+
+TASK [Start Nginx service] **********************************************************************************************************
+changed: [server1]
+changed: [server2]
+
+PLAY RECAP **************************************************************************************************************************
+server1                    : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+server2                    : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
 
 
 ## 3. Verify the Result

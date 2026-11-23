@@ -2,9 +2,11 @@
 - name: Install and configure web server
   hosts: test_servers # has to match the cluster name in .ini inventory file
   tasks:
-    - name: Update apt cache and install Nginx
+    - name: Update apt cache and install Nginx and Curl
       apt:
-        name: nginx
+        name:
+          - nginx
+          - curl
         state: present
         update_cache: yes
 
