@@ -130,3 +130,5 @@ Execute the automation using the ansible-playbook command:
 ```bash
 ansible-playbook -i inventory.ini setup_web.yml
 ```
+• On the first run, you will see yellow changed statuses because Ansible modified the servers.
+• On the second run, you will get green ok statuses because Ansible is idempotent: it sees everything is already in the desired state and makes no unnecessary changes.
