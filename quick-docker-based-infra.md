@@ -13,7 +13,18 @@ Using Docker containers on your own laptop is the fastest and most resource-effi
 • Missing Python: On minimal Linux installations, Python might not be present. In such cases, the `ping` module will throw an error; you will need to install the `python3` package on the target server.
 
 # Steps
-## 1. Create test servers in Docker
+## 1. Creating and copying an SSH key pair
+To connect servers (clients/managed nodes) to the Ansible server (control node), you need to set up SSH key-based authentication and an inventory file. Since Ansible is agentless, there is no need to install additional software on the target servers; *only SSH access and Python are required*.
+
+On the Ansible server, create an SSH key pair (if you do not already have one), then copy the public key to the servers you wish to connect so that you can log in without a password.
+1. Generating a key on the Ansible server:
+```ssh-keygen -t ed25519```
+    Or more explicit:
+```ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519```
+Use this code with caution.
+(Press Enter for every prompt to ensure the key does not have a passphrase).
+
+## 2. Create test servers in Docker
 Before that, we create custom docker network for this ansible lab and the containers which will simulate the servers (managed nodes)
 ```docker network create ansible-net```
 
@@ -22,6 +33,7 @@ Launch 2 test "servers" (from a pre-prepared Ubuntu + SSH image):bash
 docker run -d --name server1 --network ansible-net -p 2221:22 rastasheep/ubuntu-sshd:18.04
 docker run -d --name server2 --network ansible-net -p 2222:22 rastasheep/ubuntu-sshd:18.04
 ```
+**(The default password for the root user for this image is: root).**
 
 Check run
 ```docker ps -f network=ansible-net```
