@@ -1,4 +1,4 @@
-# Define and create a Docker based infrastucture to learn and test Ansible usage and capacities
+# Define and create a Docker based infrastructure to learn and test Ansible usage and capabilities
 ## Requirements
 This lab assumes you have installed on your laptop: Python, Ansible
 
