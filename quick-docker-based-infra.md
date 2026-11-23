@@ -142,6 +142,20 @@ When you run ansible-playbook, Ansible looks at the hosts: line to decide which 
 If there is a typo or mismatch between the playbook and the inventory file, Ansible will skip the play and give you a warning: [WARNING]: Could not match supplied host pattern, ignoring: ...
 
 
+1. How Ansible knows {{ inventory_hostname }}
+
+• Jinja2 Templating: Ansible uses the Jinja2 templating engine. Whenever Ansible sees double curly braces {{ ... }}, it evaluates the expression inside before sending the command to the remote server.
+• "Magic" Variables: *inventory_hostname* is one of Ansible's built-in "magic variables." When Ansible reads your inventory.ini file, it automatically assigns the exact alias you wrote on the left side (server1 or server2) to this variable for each respective connection.
+• Gathered Facts: When a playbook starts, you might notice a step called Gathering Facts. Ansible runs a hidden script (setup module) on the servers to collect hundreds of variables about them (OS version, IP address, CPU count, RAM, etc.) that you can also use in {{ ... }} tags, such as {{ ansible_os_family }}.
+
+2. How Ansible knows how to start the service
+
+This is the power of Ansible Modules. Instead of writing raw shell commands like systemctl start nginx or service nginx start, **you declare the desired state (state: started), and the module figures out how to achieve it.**
+1. Python Execution: Behind the scenes, Ansible compiles the service module into a small Python script, copies it over SSH to a temporary folder on server1 and server2, and executes it.
+2. OS Detection: That Python script inspects the container to see what init/service system is installed (systemd, SysVinit, Upstart, OpenRC, etc.).
+3. Abstraction: Because our Ubuntu 18.04 Docker container doesn't run systemd by default, the service module automatically falls back to running /usr/sbin/service nginx start under the hood. If you ran the exact same playbook on a modern Ubuntu 24.04 or Red Hat server, it would use systemctl start nginx instead—without you changing a single line of YAML.
+
+
 ## 2. Run the Playbook
 Execute the automation using the ansible-playbook command:
 ```bash
@@ -181,4 +195,44 @@ Check if both containers respond with their respective hostnames:
 ```bash
 docker exec server1 curl -s localhost
 docker exec server2 curl -s localhost
+```
+
+
+
+# Lab Environment Teardown & Cleanup
+
+To completely reset your environment and free up disk space after testing, run the following commands in order:
+(tear down your lab environment cleanly, stop and remove the Docker containers, images, delete the custom Docker network, and optionally remove the temporary SSH keys and project files)
+
+## 1. Remove Containers, Network, and Image
+Stop and delete the running test containers, remove the custom network, and delete the downloaded Ubuntu SSH image:
+
+```bash
+# Stop and remove the test containers
+# - the -f (force) flag stops the running containers and deletes them in a single step
+docker rm -f server1 server2
+
+# Remove the custom Docker network
+docker network rm ansible-net
+
+# Remove the downloaded container image
+docker rmi rastasheep/ubuntu-sshd:18.04
+```
+
+
+## 2. Clean Up SSH Host Keys (Recommended)
+Since you mapped those containers to 127.0.0.1 on ports 2221 and 2222, removing their fingerprints from your known_hosts file prevents SSH warnings if you ever reuse those ports for different containers later
+Remove the temporary localhost port fingerprints from your `known_hosts` file to avoid SSH host key warnings in future labs:
+
+```bash
+ssh-keygen -f "\$HOME/.ssh/known_hosts" -R ":2221"
+ssh-keygen -f "\$HOME/.ssh/known_hosts" -R ":2222"
+```
+
+
+## 3. Delete Project Files (Optional)
+If you no longer need your practice inventory and playbook files, remove the project directory:
+(if you don't want to keep your practice inventory.ini and setup_web.yml files for future reference, delete the direct)
+```bash
+cd ~ && rm -rf ~/ansible-teszt
 ```
