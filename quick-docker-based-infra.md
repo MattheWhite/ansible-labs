@@ -75,3 +75,20 @@ server2 ansible_host=127.0.0.1 ansible_port=2222 ansible_user=root
 ## 4. Test the connection:bash
 ```ansible all -i inventory.ini -m ping```
 
+On success you have to see something similar:
+```json
+server1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+server2 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+```
