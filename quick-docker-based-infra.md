@@ -123,6 +123,17 @@ Create the YAML file with this content:
         name: nginx
         state: started
 ```
+**The value you define under hosts: in your YAML playbook must strictly match a group name inside the square brackets [ ] (or an individual host alias) in your inventory.ini file.**
+
+How Ansible Matches Targets
+
+When you run ansible-playbook, Ansible looks at the hosts: line to decide which machines to connect to via SSH and run the tasks on.
+• Group Match: If your inventory has [test_servers] and your playbook has hosts: test_servers, Ansible runs the tasks on every server listed under that header.
+• Single Host Match: You can also target just one specific machine by writing *hosts: server1*.
+• All Hosts: Using *hosts: all* targets every single server in your inventory file, regardless of which group they belong to.
+• Multiple Groups: You can target multiple groups at once by separating them with a colon, like *hosts: webservers:databases*.
+
+If there is a typo or mismatch between the playbook and the inventory file, Ansible will skip the play and give you a warning: [WARNING]: Could not match supplied host pattern, ignoring: ...
 
 
 ## 2. Run the Playbook
@@ -132,3 +143,11 @@ ansible-playbook -i inventory.ini setup_web.yml
 ```
 • On the first run, you will see yellow changed statuses because Ansible modified the servers.
 • On the second run, you will get green ok statuses because Ansible is idempotent: it sees everything is already in the desired state and makes no unnecessary changes.
+
+
+## 3. Verify the Result
+Check if both containers respond with their respective hostnames:
+```bash
+docker exec server1 curl -s localhost
+docker exec server2 curl -s localhost
+```
