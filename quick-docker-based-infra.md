@@ -17,4 +17,11 @@ Using Docker containers on your own laptop is the fastest and most resource-effi
 Before that, we create custom docker network for this ansible lab and the containers which will simulate the servers (managed nodes)
 ```docker network create ansible-net```
 
+Launch 2 test "servers" (from a pre-prepared Ubuntu + SSH image):bash
+```
+docker run -d --name server1 --network ansible-net -p 2221:22 rastasheep/ubuntu-sshd:18.04
+docker run -d --name server2 --network ansible-net -p 2222:22 rastasheep/ubuntu-sshd:18.04
+```
 
+Check run
+```docker ps -f network=ansible-net```
