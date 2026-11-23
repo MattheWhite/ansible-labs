@@ -226,7 +226,7 @@ Remove the temporary localhost port fingerprints from your `known_hosts` file to
 
 ```bash
 ssh-keygen -f ~/.ssh/known_hosts -R ":2221"
-ssh-keygen -f ~/.ssh/known_hosts -R ":2222"
+ssh-keygen -f ~/.ssh/known_hosts -R ":2222" # ssh-keygen -f "\$HOME/.ssh/known_hosts" -R ":2222" --> didn't work
 ```
 
 
