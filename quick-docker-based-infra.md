@@ -225,8 +225,8 @@ Since you mapped those containers to 127.0.0.1 on ports 2221 and 2222, removing 
 Remove the temporary localhost port fingerprints from your `known_hosts` file to avoid SSH host key warnings in future labs:
 
 ```bash
-ssh-keygen -f "\$HOME/.ssh/known_hosts" -R ":2221"
-ssh-keygen -f "\$HOME/.ssh/known_hosts" -R ":2222"
+ssh-keygen -f ~/.ssh/known_hosts -R ":2221"
+ssh-keygen -f ~/.ssh/known_hosts -R ":2222"
 ```
 
 
