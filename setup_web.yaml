@@ -1,0 +1,19 @@
+---
+- name: Install and configure web server
+  hosts: test_servers # has to match the cluster name in .ini inventory file
+  tasks:
+    - name: Update apt cache and install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Create custom index.html
+      copy:
+        content: "<h1>Welcome from Ansible on {{ inventory_hostname }}!</h1>\n"
+        dest: /var/www/html/index.html
+
+    - name: Start Nginx service
+      service:
+        name: nginx
+        state: started
